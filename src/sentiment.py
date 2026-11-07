@@ -1,5 +1,5 @@
+
 import nltk
-import pandas as pd
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 
@@ -19,21 +19,26 @@ def classify_sentiment(text):
         return "positive"
     elif score <= -0.05:
         return "negative"
+
     return "neutral"
 
 
 def analyze_dataframe(df, text_column="text"):
-    result = df.copy()
+    if text_column not in df.columns:
+        raise ValueError(f"Missing column: {text_column}")
 
+    result = df.copy()
     analyzer = get_analyzer()
 
     scores = result[text_column].fillna("").astype(str).apply(
         analyzer.polarity_scores
     )
 
-    result["compound"] = scores.apply(lambda x: x["compound"])
+    result["compound"] = scores.apply(
+        lambda x: x["compound"]
+    )
 
-    result["sentiment_label"] = result["compound"].apply(
+    result["predicted_sentiment"] = result["compound"].apply(
         lambda x: (
             "positive" if x >= 0.05
             else "negative" if x <= -0.05
@@ -46,10 +51,15 @@ def analyze_dataframe(df, text_column="text"):
 
 def count_true_positives(
     df,
-    actual_column="sentiment",
-    predicted_column="sentiment_label"
+    actual_column="sentiment_label",
+    predicted_column="predicted_sentiment"
 ):
     actual = df[actual_column].astype(str).str.lower().str.strip()
-    predicted = df[predicted_column].astype(str).str.lower().str.strip()
 
-    return int(((actual == "positive") & (predicted == "positive")).sum())
+    predicted = (
+        df[predicted_column].astype(str).str.lower().str.strip()
+    )
+
+    return int(
+        ((actual == "positive") & (predicted == "positive")).sum()
+    )
