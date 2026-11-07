@@ -25,19 +25,33 @@ from src.similarity import (
 BASE_DIR = Path(__file__).resolve().parent
 
 
+def resolve_path(path):
+    path = Path(path)
+
+    if not path.is_absolute():
+        path = BASE_DIR / path
+
+    return path
+
+
 def run_project(
-    audio_file="sample_customer_call.wav",
-    csv_file="customer_call_transcriptions.csv"
+    audio_file="data/sample_customer_call.wav",
+    csv_file="data/customer_call_transcriptions.csv"
 ):
 
-    audio_path = BASE_DIR / audio_file
-    csv_path = BASE_DIR / csv_file
+    audio_path = resolve_path(audio_file)
+    csv_path = resolve_path(csv_file)
 
+    # Check input files
     if not audio_path.exists():
-        raise FileNotFoundError(f"Audio not found: {audio_path}")
+        raise FileNotFoundError(
+            f"Audio file not found: {audio_path}"
+        )
 
     if not csv_path.exists():
-        raise FileNotFoundError(f"CSV not found: {csv_path}")
+        raise FileNotFoundError(
+            f"CSV file not found: {csv_path}"
+        )
 
     # 1. Audio processing
     transcribed_text = transcribe_audio(str(audio_path))
@@ -49,15 +63,29 @@ def run_project(
     # 2. Load customer calls
     df = pd.read_csv(csv_path)
 
-    if not {"text", "sentiment"}.issubset(df.columns):
+    if "text" not in df.columns:
+        raise ValueError("CSV must contain a text column.")
+
+    if "sentiment_label" in df.columns:
+        actual_column = "sentiment_label"
+    elif "sentiment" in df.columns:
+        actual_column = "sentiment"
+    else:
         raise ValueError(
-            "CSV must contain text and sentiment columns."
+            "CSV must contain sentiment_label or sentiment."
         )
 
     # 3. Sentiment analysis
-    analyzed_df = analyze_dataframe(df)
+    analyzed_df = analyze_dataframe(
+        df,
+        text_column="text"
+    )
 
-    true_positive = count_true_positives(analyzed_df)
+    true_positive = count_true_positives(
+        analyzed_df,
+        actual_column=actual_column,
+        predicted_column="predicted_sentiment"
+    )
 
     # 4. Named Entity Recognition
     nlp = load_nlp()
@@ -67,19 +95,23 @@ def run_project(
         nlp=nlp
     )
 
-    # 5. Text similarity
+    # 5. Similarity search
     most_similar_text = find_most_similar_text(
         "wrong package delivery",
         analyzed_df["text"].fillna("").tolist()
     )
 
-    # Save analysis results
-    output_path = BASE_DIR / "analyzed_customer_calls.csv"
+    # 6. Save results
+    output_dir = BASE_DIR / "reports"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = output_dir / "analyzed_customer_calls.csv"
+
     analyzed_df.to_csv(output_path, index=False)
 
-    # 6. Display results
+    # 7. Display results
     print("\nCUSTOMER SUPPORT ANALYSIS")
-    print("-" * 40)
+    print("=" * 45)
 
     print("Transcribed text:", transcribed_text)
     print("Frame rate:", frame_rate)
