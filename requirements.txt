@@ -1,0 +1,6 @@
+SpeechRecognition
+pydub
+pandas
+nltk
+spacy
+numpy
