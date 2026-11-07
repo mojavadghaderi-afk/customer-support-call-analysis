@@ -233,3 +233,6 @@ venv/
 # Customer data - keep private
 data/*.wav
 data/*.csv
+
+# Generated analysis reports
+reports/*.csv
