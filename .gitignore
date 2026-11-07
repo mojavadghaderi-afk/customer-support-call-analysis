@@ -218,3 +218,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Jupyter temporary files
+.ipynb_checkpoints/
+
+# Customer data - keep private
+data/*.wav
+data/*.csv
